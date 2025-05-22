@@ -197,7 +197,6 @@ class Learner(BaseLearner):
                     test_acc,
                 )
                 
-                # 如果使用wandb，记录日志
                 wandb.log({
                     "Loss/Train Loss": losses / len(train_loader),
                     "Accuracy/Train Accuracy": train_acc,
@@ -225,10 +224,8 @@ class Learner(BaseLearner):
                 }, step=self.global_step)
             prog_bar.set_description(info)
         
-        # 在训练结束后输出最佳验证准确率信息
         logging.info(f"Task {self._cur_task} - Best Validation Accuracy: {best_val_acc:.2f} at Epoch {best_epoch}")
         
-        # 如果使用wandb，记录最佳验证准确率
         wandb.log({
             "Best/Validation Accuracy": best_val_acc,
             "Best/Epoch": best_epoch,

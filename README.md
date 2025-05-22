@@ -6,13 +6,6 @@ Official code repository for the paper
 
 This project includes the plug-and-play method Prompt-E implemented using PyTorch.
 
-## Key Features
-
-- **Plug-and-Play Prompt-E Implementation**: Utilizes the PyTorch framework, making it easy to study and modify.
-- **Optimized for Incremental Learning**: Enhances the performance of pretrained models in incremental learning scenarios by optimizing the update weights of prompts, suitable for handling large-scale datasets and multiple tasks.
-- **Enhanced Quality of Feature Representations**: Integrates textual information into image feature representations using comparison and reconstruction techniques to refine the quality of features.
-- **Focused Optimization of Prompt Efficiency**: Revisits the methods of prompt incremental learning, emphasizing the importance of optimizing prompt efficiency.
-
 ## Environment Requirements
 
 - Python 3.9.18
@@ -29,6 +22,96 @@ Clone the repository and install the required dependencies:
 git clone https://github.com/ArkNightmaster/Prompt-E.git
 cd Prompt-E
 pip install -r requirements.txt
+```
+
+## Key Implementations
+
+Our method consists of two key components: Cosine Prompt Regularization (CPR) and Language Representation Guidance (LRG). Here are the key implementations that showcase our plug-and-play approach:
+
+### 1. Cosine Prompt Regularization (CPR)
+
+```python
+# In vision_transformer_clip_prompt_l2p.py, forward_head method
+def forward_head(self, res, pre_logits: bool = False):
+    # ... existing code ...
+    
+    elif self.head_type == 'token_with_prompt' and self.prompt_pool and self.class_token:
+        res['cls_token_logits'] = x[:,0]
+
+        # Cosine Prompt Regularization (CPR)
+        cls_tokens = x[:,0]
+        prompt_tokens = x[:, 1:self.total_prompt_len + 1]
+        if self.rt_weight:
+            x, prompt_weights = cosine_similarity(cls_tokens, prompt_tokens, self.rt_weight)
+            res['prompt_weight'] = prompt_weights
+        else:
+            x = cosine_similarity(cls_tokens, prompt_tokens)
+        x = x.mean(dim=1)
+    
+    # ... existing code ...
+```
+
+### 2. Language Representation Guidance (LRG)
+
+```python
+# In models/clip_prompt_l2p.py
+def _train(self, train_loader, val_loader, test_loader):
+    # ... existing code ...
+    
+    for _, epoch in enumerate(prog_bar):
+        # ... existing code ...
+        
+        for i, (_, inputs, targets, names) in enumerate(train_loader):
+            inputs, targets = inputs.to(self._device), targets.long().to(self._device)
+            text_feature = self.text_feature
+            
+            with torch.cuda.amp.autocast():
+                output = self.network1(inputs, task_id=self._cur_task, train=True)
+                logits = output["logits"][:, :self._total_classes]
+                logits[:, :self._known_classes] = float('-inf')
+                
+                # Standard cross-entropy loss
+                loss_origin = F.cross_entropy(logits, targets)
+                
+                # Language Representation Guidance loss
+                loss_text_matching = info_nce_loss(output['reconstruct_pre_logits'], text_feature, targets, tau=self.tau)
+                
+                # Combined loss
+                loss = alpha * loss_origin + beta * loss_text_matching
+                
+                # ... remaining code ...
+```
+
+The LRG module in the ViT backbone:
+
+```python
+# In vision_transformer_clip_prompt_l2p.py
+# Generative Decoder for LRG
+self.mask_ratio = mask_ratio
+self.downstream_layers = nn.Sequential(OrderedDict([
+    ('align_layer', self.align_layers(mask_ratio)),
+    ('generative_linear', nn.Sequential(
+        nn.Conv1d(in_channels=768, out_channels=768, kernel_size=1, stride=1, padding=0),
+        nn.ReLU(),
+        nn.Conv1d(in_channels=768, out_channels=768, kernel_size=1, stride=1, padding=0)))
+]))
+
+# ... existing code ...
+
+class align_layers(nn.Module):
+    """
+    Align feature and apply mask ratio for LRG
+    """
+    def __init__(self, mask_ratio):
+        super().__init__()
+        self.lambda1 = mask_ratio
+        self.align_layer = nn.Conv1d(in_channels=768, out_channels=768, kernel_size=1, stride=1, padding=0)
+    
+    def forward(self, x):
+        mask_ratio = torch.rand(x.shape).to(x.device)
+        mask_ratio = (mask_ratio >= self.lambda1).float()
+        x = self.align_layer(x)
+        return x * mask_ratio
 ```
 
 ## Usage Instructions
