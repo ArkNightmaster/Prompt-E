@@ -1,0 +1,9 @@
+pillow==10.0.1
+tqdm==4.65.2
+numpy==1.26.3
+ftfy==6.1.3
+regex==2023.12.25
+pyyaml==6.0.1
+timm==0.6.12
+scipy==1.12.0
+argparse==1.4.0
