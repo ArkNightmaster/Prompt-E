@@ -26,8 +26,8 @@ This project includes the plug-and-play method Prompt-E implemented using PyTorc
 Clone the repository and install the required dependencies:
 
 ```bash
-git clone https://your-repository-url.git
-cd your-project-directory
+git clone https://github.com/ArkNightmaster/Prompt-E.git
+cd Prompt-E
 pip install -r requirements.txt
 ```
 
