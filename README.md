@@ -2,7 +2,7 @@
 
 Official code repository for the paper 
 
-"Prompt-Enhanced: Leveraging Language Representation for Prompt Continual Learning" 
+[Prompt-Enhanced: Leveraging Language Representation for Prompt Continual Learning](https://www.sciencedirect.com/science/article/abs/pii/S0893608025004691?via%3Dihub)
 
 This project includes the plug-and-play method Prompt-E implemented using PyTorch.
 
